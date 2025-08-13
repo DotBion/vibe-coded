@@ -71,3 +71,16 @@ jspm_packages/
 # Temporary files
 *.tmp
 *.temp
+
+# Python (keeping some useful Python ignores)
+__pycache__/
+*.py[codz]
+*$py.class
+*.so
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
