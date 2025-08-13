@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, ExternalLink, Download } from 'lucide-react';
 import { Template, UserData } from '../types';
+import PortfolioLayout from './PortfolioLayout';
 
 interface WebsitePreviewProps {
   template: Template;
@@ -36,6 +37,12 @@ const WebsitePreview: React.FC<WebsitePreviewProps> = ({ template, userData, isO
   const renderDynamicWebsite = (template: Template, userData: UserData) => {
     const design = template.designData!;
     
+    // Use PortfolioLayout for portfolio websites
+    if (design.layout.type === 'portfolio') {
+      return <PortfolioLayout userData={userData} designData={design} />;
+    }
+    
+    // Fallback to generic layout for other types
     return (
       <div 
         className="min-h-screen"

@@ -22,7 +22,7 @@ export class UrlAnalyzerService {
       title: this.generateTitle(domain, websiteType),
       description: this.generateDescription(domain, websiteType),
       sections: this.generateSections(websiteType),
-      designData: this.generateDesignData(websiteType, domain),
+      designData: this.generateDesignData(websiteType, domain, url),
       contentStructure: this.generateContentStructure(websiteType)
     };
   }
@@ -43,7 +43,8 @@ export class UrlAnalyzerService {
     // Portfolio/Personal websites
     if (lowerDomain.includes('brittany') || lowerDomain.includes('portfolio') || 
         lowerDomain.includes('personal') || lowerDomain.includes('dev') ||
-        lowerDomain.includes('designer') || lowerDomain.includes('creative')) {
+        lowerDomain.includes('designer') || lowerDomain.includes('creative') ||
+        lowerDomain.includes('chiang')) {
       return 'portfolio';
     }
 
@@ -134,7 +135,12 @@ export class UrlAnalyzerService {
     }
   }
 
-  private generateDesignData(type: string, domain: string): DesignData {
+  private generateDesignData(type: string, domain: string, url: string): DesignData {
+    // Special handling for known portfolio websites
+    if (domain.toLowerCase().includes('brittany') || domain.toLowerCase().includes('chiang')) {
+      return this.getBrittanyChiangStyle();
+    }
+
     const baseColors = this.getBaseColors(type);
     
     return {
@@ -149,6 +155,40 @@ export class UrlAnalyzerService {
       typography: this.getTypography(type),
       layout: this.getLayout(type),
       style: this.getStyle(type)
+    };
+  }
+
+  private getBrittanyChiangStyle(): DesignData {
+    return {
+      colors: {
+        primary: '#0a192f', // Dark navy background
+        secondary: '#8892b0', // Light gray text
+        accent: '#64ffda', // Teal accent
+        background: '#0a192f', // Dark navy
+        text: '#ccd6f6', // Light blue text
+        surface: '#112240' // Slightly lighter navy for cards
+      },
+      typography: {
+        headingFont: 'Inter, system-ui, sans-serif',
+        bodyFont: 'Inter, system-ui, sans-serif',
+        fontSize: {
+          h1: '4.5rem',
+          h2: '2.5rem',
+          h3: '1.875rem',
+          body: '1.125rem'
+        }
+      },
+      layout: {
+        type: 'portfolio',
+        spacing: 'spacious',
+        sections: ['hero', 'about', 'experience', 'projects', 'skills', 'contact'],
+        features: ['sidebar-navigation', 'smooth-scroll', 'skill-tags', 'professional-layout']
+      },
+      style: {
+        shadows: 'subtle',
+        borders: 'none',
+        animations: 'subtle'
+      }
     };
   }
 
@@ -258,7 +298,7 @@ export class UrlAnalyzerService {
           type: 'portfolio',
           spacing: 'spacious',
           sections: ['hero', 'about', 'experience', 'projects', 'skills', 'contact'],
-          features: ['smooth-scroll', 'parallax', 'interactive-elements', 'dark-mode']
+          features: ['sidebar-navigation', 'smooth-scroll', 'skill-tags', 'professional-layout']
         };
       case 'business':
         return {
@@ -288,9 +328,9 @@ export class UrlAnalyzerService {
     switch (type) {
       case 'portfolio':
         return {
-          shadows: 'prominent',
-          borders: 'rounded',
-          animations: 'prominent'
+          shadows: 'subtle',
+          borders: 'none',
+          animations: 'subtle'
         };
       case 'business':
         return {
