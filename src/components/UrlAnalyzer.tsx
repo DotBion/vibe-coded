@@ -1,22 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Globe, Eye, Download, CheckCircle, Loader, AlertCircle } from 'lucide-react';
-import { Template, Field } from '../types';
+import { ArrowLeft, Globe, Eye, Download, CheckCircle, Loader, AlertCircle, Palette, Type, Layout, Sparkles } from 'lucide-react';
+import { Template, Field, AnalyzedWebsite } from '../types';
+import { UrlAnalyzerService } from '../services/urlAnalyzer';
 
 interface UrlAnalyzerProps {
   url: string;
   onBack: () => void;
   onTemplateGenerated: (template: Template) => void;
-}
-
-interface AnalyzedWebsite {
-  title: string;
-  description: string;
-  sections: string[];
-  style: {
-    colors: string[];
-    layout: string;
-    typography: string;
-  };
 }
 
 const UrlAnalyzer: React.FC<UrlAnalyzerProps> = ({ url, onBack, onTemplateGenerated }) => {
@@ -34,22 +24,14 @@ const UrlAnalyzer: React.FC<UrlAnalyzerProps> = ({ url, onBack, onTemplateGenera
       setAnalysisStep('analyzing');
       setError(null);
 
-      // Simulate website analysis (in a real app, this would call an API)
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      // Mock analysis results based on the URL
-      const mockAnalysis: AnalyzedWebsite = {
-        title: extractDomainName(url),
-        description: `A professional website template inspired by ${extractDomainName(url)}`,
-        sections: generateSectionsFromUrl(url),
-        style: generateStyleFromUrl(url)
-      };
-
-      setAnalyzedData(mockAnalysis);
+      const analyzerService = UrlAnalyzerService.getInstance();
+      const analysis = await analyzerService.analyzeWebsite(url);
+      
+      setAnalyzedData(analysis);
       setAnalysisStep('generating');
 
-      // Generate template
-      await generateTemplate(mockAnalysis);
+      // Generate template with design data
+      await generateTemplate(analysis);
 
     } catch (err) {
       setError('Failed to analyze website. Please try again.');
@@ -63,14 +45,15 @@ const UrlAnalyzer: React.FC<UrlAnalyzerProps> = ({ url, onBack, onTemplateGenera
 
       const template: Template = {
         id: `url-template-${Date.now()}`,
-        name: `${analysis.title} Template`,
+        name: analysis.title,
         description: analysis.description,
         category: 'Custom',
         previewImage: '/templates/custom-template.jpg',
         githubUrl: '#',
         demoUrl: url,
-        tags: ['custom', 'url-inspired', 'professional'],
-        requiredFields: generateRequiredFields(analysis.sections)
+        tags: ['custom', 'url-inspired', 'professional', analysis.designData.layout.type],
+        requiredFields: generateRequiredFields(analysis.sections),
+        designData: analysis.designData
       };
 
       setGeneratedTemplate(template);
@@ -78,54 +61,6 @@ const UrlAnalyzer: React.FC<UrlAnalyzerProps> = ({ url, onBack, onTemplateGenera
 
     } catch (err) {
       setError('Failed to generate template. Please try again.');
-    }
-  };
-
-  const extractDomainName = (url: string): string => {
-    try {
-      const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname;
-      return domain.replace('www.', '').split('.')[0];
-    } catch {
-      return 'Custom';
-    }
-  };
-
-  const generateSectionsFromUrl = (url: string): string[] => {
-    const domain = extractDomainName(url).toLowerCase();
-    
-    // Customize sections based on common website patterns
-    if (domain.includes('portfolio') || domain.includes('brittany')) {
-      return ['hero', 'about', 'experience', 'projects', 'contact'];
-    } else if (domain.includes('blog') || domain.includes('news')) {
-      return ['header', 'featured', 'articles', 'sidebar', 'footer'];
-    } else if (domain.includes('business') || domain.includes('company')) {
-      return ['hero', 'services', 'about', 'team', 'contact'];
-    } else {
-      return ['hero', 'about', 'services', 'contact'];
-    }
-  };
-
-  const generateStyleFromUrl = (url: string) => {
-    const domain = extractDomainName(url).toLowerCase();
-    
-    if (domain.includes('brittany') || domain.includes('portfolio')) {
-      return {
-        colors: ['#1a1a1a', '#ffffff', '#3b82f6', '#64748b'],
-        layout: 'modern-minimal',
-        typography: 'clean-serif'
-      };
-    } else if (domain.includes('creative') || domain.includes('design')) {
-      return {
-        colors: ['#f59e0b', '#ffffff', '#1f2937', '#10b981'],
-        layout: 'creative-grid',
-        typography: 'modern-display'
-      };
-    } else {
-      return {
-        colors: ['#3b82f6', '#ffffff', '#1f2937', '#6b7280'],
-        layout: 'professional-standard',
-        typography: 'professional-serif'
-      };
     }
   };
 
@@ -147,6 +82,12 @@ const UrlAnalyzer: React.FC<UrlAnalyzerProps> = ({ url, onBack, onTemplateGenera
           return { id: 'projects', label: 'Projects', type: 'textarea', required: true, placeholder: 'Describe your projects...' };
         case 'services':
           return { id: 'services', label: 'Services', type: 'textarea', required: true, placeholder: 'List your services...' };
+        case 'skills':
+          return { id: 'skills', label: 'Skills', type: 'text', required: false, placeholder: 'e.g., React, TypeScript, Design' };
+        case 'team':
+          return { id: 'team', label: 'Team Members', type: 'textarea', required: false, placeholder: 'List your team members...' };
+        case 'testimonials':
+          return { id: 'testimonials', label: 'Testimonials', type: 'textarea', required: false, placeholder: 'Customer testimonials...' };
         case 'contact':
           return { id: 'phone', label: 'Phone Number', type: 'text', required: false, placeholder: '+1 (555) 123-4567' };
         default:
@@ -198,90 +139,159 @@ const UrlAnalyzer: React.FC<UrlAnalyzerProps> = ({ url, onBack, onTemplateGenera
         </p>
       </div>
 
+      {/* Analysis Progress */}
       {analysisStep === 'analyzing' && (
-        <div className="text-center py-12">
-          <Loader className="h-16 w-16 text-primary-600 mx-auto mb-6 animate-spin" />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+          <div className="mb-6">
+            <Loader className="h-16 w-16 text-primary-600 animate-spin mx-auto" />
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Analyzing Website Structure
           </h2>
           <p className="text-gray-600 mb-6">
-            We're examining the layout, sections, and design patterns of the website.
+            We're examining the design, layout, and content structure of {url}
           </p>
-          <div className="analysis-progress max-w-md mx-auto">
-            <div className="analysis-progress-bar animate-pulse" style={{ width: '40%' }}></div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="bg-primary-600 h-3 rounded-full animate-pulse" style={{ width: '60%' }}></div>
           </div>
         </div>
       )}
 
+      {/* Template Generation */}
       {analysisStep === 'generating' && analyzedData && (
-        <div className="text-center py-12">
-          <Loader className="h-16 w-16 text-primary-600 mx-auto mb-6 animate-spin" />
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+          <div className="mb-6">
+            <Sparkles className="h-16 w-16 text-primary-600 animate-pulse mx-auto" />
+          </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             Generating Custom Template
           </h2>
           <p className="text-gray-600 mb-6">
-            Creating a personalized template based on our analysis.
+            Creating a personalized template based on the analysis
           </p>
-          <div className="analysis-progress max-w-md mx-auto">
-            <div className="analysis-progress-bar animate-pulse" style={{ width: '80%' }}></div>
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div className="bg-primary-600 h-3 rounded-full animate-pulse" style={{ width: '90%' }}></div>
           </div>
         </div>
       )}
 
-      {analysisStep === 'complete' && generatedTemplate && (
-        <div className="space-y-8">
-          <div className="text-center">
-            <CheckCircle className="h-16 w-16 text-green-500 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              Template Generated Successfully!
+      {/* Analysis Results */}
+      {analysisStep === 'complete' && analyzedData && generatedTemplate && (
+        <div className="space-y-6">
+          {/* Template Overview */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              {generatedTemplate.name}
             </h2>
-            <p className="text-gray-600">
-              We've created a custom template inspired by {extractDomainName(url)}.
-            </p>
+            <p className="text-gray-600 mb-6">{generatedTemplate.description}</p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Globe className="h-4 w-4" />
+                <span>Inspired by: {url}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Layout className="h-4 w-4" />
+                <span>Type: {analyzedData.designData.layout.type}</span>
+              </div>
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                <Sparkles className="h-4 w-4" />
+                <span>Style: {analyzedData.designData.style.animations}</span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {generatedTemplate.tags.map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-3 py-1 bg-primary-100 text-primary-800 text-sm rounded-full"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
           </div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Template Details</h3>
+          {/* Design Analysis */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Design Analysis</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Colors */}
               <div>
-                <h4 className="font-medium text-gray-700 mb-2">Template Information</h4>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Name:</span>
-                    <span className="font-medium">{generatedTemplate.name}</span>
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                  <Palette className="h-4 w-4" />
+                  <span>Color Palette</span>
+                </h4>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded border border-gray-300" 
+                      style={{ backgroundColor: analyzedData.designData.colors.primary }}
+                    ></div>
+                    <span className="text-sm text-gray-600">Primary: {analyzedData.designData.colors.primary}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Category:</span>
-                    <span className="font-medium">{generatedTemplate.category}</span>
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded border border-gray-300" 
+                      style={{ backgroundColor: analyzedData.designData.colors.secondary }}
+                    ></div>
+                    <span className="text-sm text-gray-600">Secondary: {analyzedData.designData.colors.secondary}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Sections:</span>
-                    <span className="font-medium">{generateSectionsFromUrl(url).length}</span>
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded border border-gray-300" 
+                      style={{ backgroundColor: analyzedData.designData.colors.accent }}
+                    ></div>
+                    <span className="text-sm text-gray-600">Accent: {analyzedData.designData.colors.accent}</span>
                   </div>
                 </div>
               </div>
+
+              {/* Typography */}
               <div>
-                <h4 className="font-medium text-gray-700 mb-2">Required Fields</h4>
-                <div className="text-sm text-gray-600">
-                  {generatedTemplate.requiredFields.length} fields to customize
+                <h4 className="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                  <Type className="h-4 w-4" />
+                  <span>Typography</span>
+                </h4>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <p>Heading: {analyzedData.designData.typography.headingFont}</p>
+                  <p>Body: {analyzedData.designData.typography.bodyFont}</p>
+                  <p>H1 Size: {analyzedData.designData.typography.fontSize.h1}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          {/* Sections */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Website Sections</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {analyzedData.sections.map((section, index) => (
+                <div
+                  key={index}
+                  className="px-4 py-2 bg-gray-50 text-gray-700 rounded-lg text-center text-sm font-medium"
+                >
+                  {section.charAt(0).toUpperCase() + section.slice(1)}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4">
             <button
               onClick={handleUseTemplate}
-              className="btn-primary flex items-center justify-center space-x-2 px-8 py-3"
+              className="btn-primary flex-1 flex items-center justify-center space-x-2"
             >
-              <Globe className="h-5 w-5" />
+              <Eye className="h-5 w-5" />
               <span>Use This Template</span>
             </button>
             <button
               onClick={onBack}
-              className="btn-secondary px-8 py-3"
+              className="btn-secondary flex-1 flex items-center justify-center space-x-2"
             >
-              Generate Another
+              <ArrowLeft className="h-5 w-5" />
+              <span>Analyze Different URL</span>
             </button>
           </div>
         </div>
