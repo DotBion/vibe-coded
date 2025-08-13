@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+  
+  body {
+    @apply bg-gray-50 text-gray-900;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-primary-600 hover:bg-primary-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 transform hover:scale-105 hover:shadow-lg;
+  }
+  
+  .btn-secondary {
+    @apply bg-white hover:bg-gray-50 text-gray-700 font-medium py-2 px-4 rounded-lg border border-gray-300 transition-all duration-200 transform hover:scale-105 hover:shadow-lg;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-sm border border-gray-200 p-6;
+  }
+  
+  .input-field {
+    @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  }
+  
+  .btn-hero {
+    @apply transform transition-all duration-200 hover:scale-105 hover:shadow-lg active:scale-95;
+  }
+  
+  .preview-modal {
+    @apply fixed inset-0 z-50 overflow-y-auto;
+  }
+  
+  .preview-backdrop {
+    @apply fixed inset-0 bg-black bg-opacity-50 transition-opacity;
+  }
+  
+  .preview-content {
+    @apply relative bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] overflow-hidden;
+  }
+  
+  .preview-header {
+    @apply flex items-center justify-between p-6 border-b border-gray-200 bg-gray-50;
+  }
+  
+  .preview-body {
+    @apply overflow-y-auto max-h-[calc(90vh-80px)] bg-white;
+  }
+  
+  .preview-footer {
+    @apply flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50;
+  }
+  
+  .url-input-section {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 p-6;
+  }
+  
+  .url-input-field {
+    @apply w-full px-4 py-3 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent;
+  }
+  
+  .analysis-progress {
+    @apply bg-gray-100 rounded-full h-2 overflow-hidden;
+  }
+  
+  .analysis-progress-bar {
+    @apply bg-primary-600 h-2 rounded-full transition-all duration-1000;
+  }
+}
